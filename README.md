@@ -68,6 +68,8 @@ cd video-enhancement-for-mac
 4. Choose an output codec and quality.
 5. Click **Start Enhancement**. Files are processed one by one and saved to the `enhanced/` subfolder (or a custom folder).
 
+Use the **EN / TH** toggle in the top-right to switch the UI language between English and Thai.
+
 ### Smart Recommend
 
 Click **Smart Recommend** in the settings panel to open a 4-step wizard:
@@ -80,6 +82,10 @@ Click **Smart Recommend** in the settings panel to open a 4-step wizard:
 | 4 | Speed vs quality priority | Algorithm choices, sharpen amount |
 
 After answering, click **Apply Settings** and all controls are updated automatically.
+
+### Language
+
+Click **EN / TH** in the top-right header to switch the full UI between English and Thai instantly — including all labels, buttons, section titles, and the Smart Recommend wizard.
 
 ### Supported input formats
 
