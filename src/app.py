@@ -52,6 +52,7 @@ class VideoEnhancerApp(ctk.CTk):
         self.processor = VideoProcessor()
         self.file_queue: list[Path] = []
         self.is_processing = False
+        self._settings_widgets: list = []
 
         self._build_ui()
         self._check_ffmpeg()
@@ -136,6 +137,8 @@ class VideoEnhancerApp(ctk.CTk):
         ctk.CTkButton(btn_row, text="+ Folder", width=80, height=28, command=self._add_folder).pack(side="left", padx=(0, 4))
         ctk.CTkButton(btn_row, text="Clear",    width=60, height=28,
                       fg_color="transparent", border_width=1,
+                      border_color=("gray50", "gray60"),
+                      text_color=("gray10", "gray90"),
                       command=self._clear_files).pack(side="left")
 
         # count label
@@ -169,6 +172,8 @@ class VideoEnhancerApp(ctk.CTk):
         ctk.CTkButton(
             frame, text="Remove Selected", height=28,
             fg_color="transparent", border_width=1,
+            border_color=("gray50", "gray60"),
+            text_color=("gray10", "gray90"),
             command=self._remove_selected,
         ).grid(row=3, column=0, columnspan=2, padx=12, pady=(0, 12))
 
@@ -189,6 +194,7 @@ class VideoEnhancerApp(ctk.CTk):
         outer.grid(row=1, column=1, sticky="nsew", padx=(8, 20), pady=8)
         outer.grid_columnconfigure(0, weight=1)
 
+        sw = self._settings_widgets
         pad = {"padx": 12, "pady": 6}
 
         # ── 1. Deinterlace ──────────────────────────────────────────────
@@ -196,9 +202,10 @@ class VideoEnhancerApp(ctk.CTk):
         s1.grid(row=0, column=0, sticky="ew", **pad)
 
         self._deint_var = ctk.BooleanVar(value=False)
-        ctk.CTkCheckBox(s1, text="Enable  (remove interlace combing from old footage)",
-                        variable=self._deint_var,
-                        command=self._sync_deint).pack(anchor="w", padx=12, pady=(10, 4))
+        _cb1 = ctk.CTkCheckBox(s1, text="Enable  (remove interlace combing from old footage)",
+                                variable=self._deint_var, command=self._sync_deint)
+        _cb1.pack(anchor="w", padx=12, pady=(10, 4))
+        sw.append(_cb1)
 
         row = ctk.CTkFrame(s1, fg_color="transparent")
         row.pack(fill="x", padx=12, pady=(0, 10))
@@ -210,6 +217,7 @@ class VideoEnhancerApp(ctk.CTk):
         )
         self._deint_method.pack(side="left", padx=6)
         self._deint_method.set("yadif  (Standard)")
+        sw.append(self._deint_method)
         self._sync_deint()
 
         # ── 2. Denoise ──────────────────────────────────────────────────
@@ -217,16 +225,19 @@ class VideoEnhancerApp(ctk.CTk):
         s2.grid(row=1, column=0, sticky="ew", **pad)
 
         self._denoise_var = ctk.BooleanVar(value=False)
-        ctk.CTkCheckBox(s2, text="Enable  (reduce film grain / digital noise)",
-                        variable=self._denoise_var,
-                        command=self._sync_denoise).pack(anchor="w", padx=12, pady=(10, 4))
+        _cb2 = ctk.CTkCheckBox(s2, text="Enable  (reduce film grain / digital noise)",
+                                variable=self._denoise_var, command=self._sync_denoise)
+        _cb2.pack(anchor="w", padx=12, pady=(10, 4))
+        sw.append(_cb2)
 
         self._denoise_row = ctk.CTkFrame(s2, fg_color="transparent")
         self._denoise_row.pack(fill="x", padx=12, pady=(0, 10))
         ctk.CTkLabel(self._denoise_row, text="Strength:", width=72).pack(side="left")
         self._denoise_str = ctk.DoubleVar(value=4.0)
-        ctk.CTkSlider(self._denoise_row, from_=1, to=10,
-                      variable=self._denoise_str, width=160).pack(side="left", padx=6)
+        _sl2 = ctk.CTkSlider(self._denoise_row, from_=1, to=10,
+                              variable=self._denoise_str, width=160)
+        _sl2.pack(side="left", padx=6)
+        sw.append(_sl2)
         self._denoise_lbl = ctk.CTkLabel(self._denoise_row, text="4.0", width=36)
         self._denoise_lbl.pack(side="left")
         self._denoise_str.trace_add("write", lambda *_: self._denoise_lbl.configure(
@@ -241,39 +252,46 @@ class VideoEnhancerApp(ctk.CTk):
         row3a.pack(fill="x", padx=12, pady=(10, 4))
         ctk.CTkLabel(row3a, text="Scale:", width=72).pack(side="left")
         self._scale_var = ctk.StringVar(value="1×  (Original)")
-        ctk.CTkOptionMenu(
+        _om3a = ctk.CTkOptionMenu(
             row3a,
             values=["1×  (Original)", "2×  Upscale", "4×  Upscale"],
             variable=self._scale_var,
             width=180,
-        ).pack(side="left", padx=6)
+        )
+        _om3a.pack(side="left", padx=6)
+        sw.append(_om3a)
 
         row3b = ctk.CTkFrame(s3, fg_color="transparent")
         row3b.pack(fill="x", padx=12, pady=(0, 10))
         ctk.CTkLabel(row3b, text="Algorithm:", width=72).pack(side="left")
         self._algo_var = ctk.StringVar(value="Lanczos  (Best)")
-        ctk.CTkOptionMenu(
+        _om3b = ctk.CTkOptionMenu(
             row3b,
             values=["Lanczos  (Best)", "Bicubic  (Fast)", "Bilinear  (Fastest)"],
             variable=self._algo_var,
             width=180,
-        ).pack(side="left", padx=6)
+        )
+        _om3b.pack(side="left", padx=6)
+        sw.append(_om3b)
 
         # ── 4. Sharpen ──────────────────────────────────────────────────
         s4 = self._section(outer, "4  Sharpen")
         s4.grid(row=3, column=0, sticky="ew", **pad)
 
         self._sharp_var = ctk.BooleanVar(value=False)
-        ctk.CTkCheckBox(s4, text="Enable sharpening",
-                        variable=self._sharp_var,
-                        command=self._sync_sharp).pack(anchor="w", padx=12, pady=(10, 4))
+        _cb4 = ctk.CTkCheckBox(s4, text="Enable sharpening",
+                                variable=self._sharp_var, command=self._sync_sharp)
+        _cb4.pack(anchor="w", padx=12, pady=(10, 4))
+        sw.append(_cb4)
 
         self._sharp_row = ctk.CTkFrame(s4, fg_color="transparent")
         self._sharp_row.pack(fill="x", padx=12, pady=(0, 10))
         ctk.CTkLabel(self._sharp_row, text="Amount:", width=72).pack(side="left")
         self._sharp_amt = ctk.DoubleVar(value=1.0)
-        ctk.CTkSlider(self._sharp_row, from_=0.1, to=3.0,
-                      variable=self._sharp_amt, width=160).pack(side="left", padx=6)
+        _sl4 = ctk.CTkSlider(self._sharp_row, from_=0.1, to=3.0,
+                              variable=self._sharp_amt, width=160)
+        _sl4.pack(side="left", padx=6)
+        sw.append(_sl4)
         self._sharp_lbl = ctk.CTkLabel(self._sharp_row, text="1.0", width=36)
         self._sharp_lbl.pack(side="left")
         self._sharp_amt.trace_add("write", lambda *_: self._sharp_lbl.configure(
@@ -289,7 +307,7 @@ class VideoEnhancerApp(ctk.CTk):
         rc.pack(fill="x", padx=12, pady=(10, 4))
         ctk.CTkLabel(rc, text="Codec:", width=72).pack(side="left")
         self._codec_var = ctk.StringVar(value="H.265 HEVC  (VideoToolbox)")
-        ctk.CTkOptionMenu(
+        _om5c = ctk.CTkOptionMenu(
             rc,
             values=[
                 "H.265 HEVC  (VideoToolbox)",
@@ -299,14 +317,18 @@ class VideoEnhancerApp(ctk.CTk):
             ],
             variable=self._codec_var,
             width=240,
-        ).pack(side="left", padx=6)
+        )
+        _om5c.pack(side="left", padx=6)
+        sw.append(_om5c)
 
         # Quality
         rq = ctk.CTkFrame(s5, fg_color="transparent")
         rq.pack(fill="x", padx=12, pady=(0, 4))
         ctk.CTkLabel(rq, text="Quality:", width=72).pack(side="left")
         self._quality_var = ctk.IntVar(value=65)
-        ctk.CTkSlider(rq, from_=0, to=100, variable=self._quality_var, width=160).pack(side="left", padx=6)
+        _sl5q = ctk.CTkSlider(rq, from_=0, to=100, variable=self._quality_var, width=160)
+        _sl5q.pack(side="left", padx=6)
+        sw.append(_sl5q)
         self._quality_lbl = ctk.CTkLabel(rq, text="65", width=36)
         self._quality_lbl.pack(side="left")
         self._quality_var.trace_add("write", lambda *_: self._quality_lbl.configure(
@@ -317,23 +339,31 @@ class VideoEnhancerApp(ctk.CTk):
         ro.pack(fill="x", padx=12, pady=(0, 4))
         ctk.CTkLabel(ro, text="Output:", width=72).pack(side="left")
         self._out_folder = ctk.StringVar(value="Same folder  (enhanced/)")
-        ctk.CTkEntry(ro, textvariable=self._out_folder, width=190).pack(side="left", padx=6)
-        ctk.CTkButton(ro, text="Browse", width=70, height=28,
-                      command=self._browse_output).pack(side="left")
+        _ent5o = ctk.CTkEntry(ro, textvariable=self._out_folder, width=190)
+        _ent5o.pack(side="left", padx=6)
+        sw.append(_ent5o)
+        _btn5b = ctk.CTkButton(ro, text="Browse", width=70, height=28,
+                               command=self._browse_output)
+        _btn5b.pack(side="left")
+        sw.append(_btn5b)
 
         # Suffix
         rs = ctk.CTkFrame(s5, fg_color="transparent")
         rs.pack(fill="x", padx=12, pady=(0, 12))
         ctk.CTkLabel(rs, text="Suffix:", width=72).pack(side="left")
         self._suffix_var = ctk.StringVar(value="_enhanced")
-        ctk.CTkEntry(rs, textvariable=self._suffix_var, width=120).pack(side="left", padx=6)
+        _ent5s = ctk.CTkEntry(rs, textvariable=self._suffix_var, width=120)
+        _ent5s.pack(side="left", padx=6)
+        sw.append(_ent5s)
 
         # Show command button
-        ctk.CTkButton(
+        _btn_prev = ctk.CTkButton(
             outer, text="Preview FFmpeg Command",
             height=30, fg_color="transparent", border_width=1,
             command=self._show_command,
-        ).grid(row=5, column=0, sticky="ew", padx=12, pady=(0, 8))
+        )
+        _btn_prev.grid(row=5, column=0, sticky="ew", padx=12, pady=(0, 8))
+        sw.append(_btn_prev)
 
     # -----------------------------------------------------------------------
 
@@ -402,6 +432,18 @@ class VideoEnhancerApp(ctk.CTk):
                 w.configure(state="normal" if enabled else "disabled")
             except Exception:
                 pass
+
+    def _set_settings_locked(self, locked: bool) -> None:
+        state = "disabled" if locked else "normal"
+        for w in self._settings_widgets:
+            try:
+                w.configure(state=state)
+            except Exception:
+                pass
+        if not locked:
+            self._sync_deint()
+            self._sync_denoise()
+            self._sync_sharp()
 
     # -----------------------------------------------------------------------
     # File management
@@ -560,6 +602,7 @@ class VideoEnhancerApp(ctk.CTk):
             messagebox.showwarning("No Files", "Add at least one video file to the queue.")
             return
         self.is_processing = True
+        self._set_settings_locked(True)
         self._start_btn.configure(text="  Cancel", fg_color="#c0392b", hover_color="#922b21")
         threading.Thread(target=self._run_queue, daemon=True).start()
 
@@ -569,6 +612,7 @@ class VideoEnhancerApp(ctk.CTk):
             fg_color=["#3B8ED0", "#1F6AA5"],
             hover_color=["#36719F", "#144870"],
         )
+        self._set_settings_locked(False)
 
     def _run_queue(self) -> None:
         settings = self._get_settings()
