@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bash run.sh)",
+      "Bash(python3 -c \"import platform; print\\(platform.mac_ver\\(\\)\\)\")",
+      "Bash(.venv/bin/python -c \"import tkinter; print\\(tkinter.TkVersion\\)\")",
+      "Bash(.venv/bin/python -m src.main)",
+      "Bash(.venv/bin/python --version)",
+      "Bash(.venv/bin/python -c \"import sys; print\\(sys.executable\\)\")",
+      "Bash(python3 -c \"import tkinter; print\\('Tk:', tkinter.TkVersion\\)\")",
+      "Read(//usr/local/bin/**)",
+      "Bash(brew list *)",
+      "Bash(/opt/homebrew/bin/python3.13 --version)",
+      "Bash(/opt/homebrew/bin/python3.13 -c \"import tkinter; print\\('Tk:', tkinter.TkVersion\\)\")",
+      "Bash(brew search *)",
+      "Bash(brew install *)",
+      "Bash(/opt/homebrew/bin/python3.13 -c \"import tkinter; print\\('Tk version:', tkinter.TkVersion\\)\")",
+      "Bash(/opt/homebrew/bin/python3.13 -m venv .venv)",
+      "Bash(.venv/bin/pip install *)",
+      "Bash(kill %1)",
+      "Bash(.venv/bin/python -c ' *)",
+      "Bash(ffmpeg -y -f lavfi -i \"testsrc=duration=3:size=320x240:rate=30\" -f lavfi -i \"sine=frequency=440:duration=3\" -c:v libx264 -c:a aac /tmp/test_input.mp4)",
+      "Bash(ffmpeg -y -i /tmp/test_input.mp4 -c:v hevc_videotoolbox -pix_fmt yuv420p -q:v 65 -c:a copy /tmp/test_out_vt.mp4)",
+      "Bash(ffmpeg -y -i /tmp/test_input.mp4 -vf \"hqdn3d=4.0:3.0:6.0:4.5,unsharp=5:5:1.0:5:5:0.0\" -c:v hevc_videotoolbox -pix_fmt yuv420p -q:v 65 -c:a copy /tmp/test_out_vt_filtered.mp4)",
+      "Bash(ffmpeg -y -i /tmp/test_input.mp4 -c:v hevc_videotoolbox -pix_fmt yuv420p -q:v 65 -c:a copy -progress pipe:1 -nostats /tmp/test_default.mp4)",
+      "Bash(ffprobe -v quiet -show_streams -select_streams v /tmp/out_420.mp4)",
+      "Bash(ffprobe -v quiet -print_format json -show_streams -show_format /Users/peerawat.ujaiyen/MyCode/video-enhancement-for-mac/.claude/worktrees/compassionate-brattain-96e56d/test/PN_13.mp4)",
+      "Bash(python3 -c ' *)",
+      "Bash(ffmpeg -y -i /Users/peerawat.ujaiyen/MyCode/video-enhancement-for-mac/.claude/worktrees/compassionate-brattain-96e56d/test/PN_13.mp4 -c:v hevc_videotoolbox -pix_fmt yuv420p -allow_sw 1 -q:v 65 -c:a copy -progress pipe:1 -nostats /tmp/PN_13_enhanced_test.mp4)",
+      "Bash(ffprobe -v quiet -show_streams /tmp/PN_13_enhanced_test.mp4)",
+      "Bash(ffprobe -v quiet -show_streams -select_streams v /Users/peerawat.ujaiyen/MyCode/video-enhancement-for-mac/.claude/worktrees/compassionate-brattain-96e56d/test/PN_13.mp4)",
+      "Bash(ffmpeg -y -i /Users/peerawat.ujaiyen/MyCode/video-enhancement-for-mac/.claude/worktrees/compassionate-brattain-96e56d/test/PN_13.mp4 -c:v hevc_videotoolbox -pix_fmt yuv420p -allow_sw 1 -q:v 65 -tag:v hvc1 -c:a copy /tmp/PN_13_hvc1.mp4)",
+      "Bash(ffprobe -v quiet -show_streams -select_streams v /tmp/PN_13_hvc1.mp4)",
+      "Bash(ffmpeg -y -i test/PN_13.mp4 -c:v hevc_videotoolbox -pix_fmt yuv420p -allow_sw 1 -q:v 65 -tag:v hvc1 -c:a copy /tmp/PN_13_hvc1.mp4)",
+      "Bash(ffmpeg -y -i /tmp/test_420.mp4 -c:v hevc_videotoolbox -pix_fmt yuv420p -allow_sw 1 -q:v 65 -tag:v hvc1 -c:a copy /tmp/test_hvc1.mp4)",
+      "Bash(ffprobe -v quiet -show_streams -select_streams v /tmp/test_hvc1.mp4)"
+    ]
+  }
+}
