@@ -34,7 +34,12 @@
       "Bash(ffmpeg -y -i test/PN_13.mp4 -c:v hevc_videotoolbox -pix_fmt yuv420p -allow_sw 1 -q:v 65 -tag:v hvc1 -c:a copy /tmp/PN_13_hvc1.mp4)",
       "Bash(ffmpeg -y -i /tmp/test_420.mp4 -c:v hevc_videotoolbox -pix_fmt yuv420p -allow_sw 1 -q:v 65 -tag:v hvc1 -c:a copy /tmp/test_hvc1.mp4)",
       "Bash(ffprobe -v quiet -show_streams -select_streams v /tmp/test_hvc1.mp4)",
-      "Bash(python -m py_compile src/app.py)"
+      "Bash(python -m py_compile src/app.py)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('src/app.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(git checkout *)",
+      "Bash(git commit -m ' *)",
+      "Bash(gh pr create --base main --head release/v1.1.0 --title 'Release v1.1.0' --body ' *)",
+      "Bash(gh pr *)"
     ]
   }
 }
