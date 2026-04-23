@@ -63,9 +63,23 @@ cd video-enhancement-for-mac
 ## Usage
 
 1. Click **+ File** to add individual video files, or **+ Folder** to add all supported videos in a folder.
-2. Configure the enhancement steps on the right panel — enable only what you need.
-3. Choose an output codec and quality.
-4. Click **Start Enhancement**. Files are processed one by one and saved to the `enhanced/` subfolder (or a custom folder).
+2. **Not sure what settings to use?** Click **Smart Recommend** at the top of the settings panel — answer 4 quick questions and settings are applied automatically.
+3. Or configure the enhancement steps manually on the right panel — enable only what you need.
+4. Choose an output codec and quality.
+5. Click **Start Enhancement**. Files are processed one by one and saved to the `enhanced/` subfolder (or a custom folder).
+
+### Smart Recommend
+
+Click **Smart Recommend** in the settings panel to open a 4-step wizard:
+
+| Step | Question | Affects |
+|---|---|---|
+| 1 | Video source (tape / DVD / digital) | Deinterlace, Denoise |
+| 2 | Main goal (sharpen / denoise / upscale / all) | All filters |
+| 3 | Output destination (streaming / archive / pro edit) | Codec, quality |
+| 4 | Speed vs quality priority | Algorithm choices, sharpen amount |
+
+After answering, click **Apply Settings** and all controls are updated automatically.
 
 ### Supported input formats
 
@@ -113,6 +127,7 @@ Amount 0.1–3.0. Recommended: 0.5–1.5 after upscaling.
 - **Noisy digital video**: Denoise only (strength 3–5)
 - **Blu-ray upscale**: Skip Deinterlace, Denoise 2–3, Upscale 2×, Sharpen 1.0
 - **Archive to ProRes**: Disable upscale, use ProRes 422 codec, quality 80
+- **Not sure?** Use **Smart Recommend** — just answer the wizard questions
 
 ---
 

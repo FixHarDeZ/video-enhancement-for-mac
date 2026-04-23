@@ -7,6 +7,7 @@ import threading
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox
+from typing import Callable
 
 import customtkinter as ctk
 
@@ -23,7 +24,7 @@ SUPPORTED_EXT = {
     ".wmv", ".flv", ".webm", ".ts", ".mts", ".m2ts",
 }
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 
 # ---------------------------------------------------------------------------
@@ -36,6 +37,206 @@ def _fmt_size(path: Path) -> str:
         return f"{mb:.1f} MB"
     except OSError:
         return ""
+
+
+# ---------------------------------------------------------------------------
+# Smart Recommend wizard
+# ---------------------------------------------------------------------------
+
+class RecommendWizard(ctk.CTkToplevel):
+    """4-step wizard that asks simple questions and recommends settings."""
+
+    _STEPS = [
+        {
+            "id": "source",
+            "title": "Step 1 / 4  —  ประเภทวิดีโอ",
+            "question": "วิดีโอนี้มาจากแหล่งใด?",
+            "options": [
+                ("old_tape", "เทป / ออกอากาศทีวีเก่า  (VHS, Betamax, VCR)"),
+                ("dvd",      "DVD หรือฟุตเทจดิจิทัลเก่า"),
+                ("modern",   "วิดีโอดิจิทัลทั่วไป  (กล้อง, มือถือ, ออนไลน์)"),
+            ],
+        },
+        {
+            "id": "goal",
+            "title": "Step 2 / 4  —  เป้าหมายหลัก",
+            "question": "ต้องการปรับปรุงอะไรเป็นหลัก?",
+            "options": [
+                ("sharpen", "ทำให้คมชัดขึ้น  (Sharpen)"),
+                ("denoise", "ลดสัญญาณรบกวน / เกรน  (Denoise)"),
+                ("upscale", "เพิ่มความละเอียด  (Upscale 2×)"),
+                ("full",    "ปรับปรุงทุกด้าน  (แนะนำ)"),
+            ],
+        },
+        {
+            "id": "usage",
+            "title": "Step 3 / 4  —  การใช้งานปลายทาง",
+            "question": "ไฟล์นี้จะใช้ทำอะไร?",
+            "options": [
+                ("streaming",    "อัปโหลด YouTube / Streaming"),
+                ("archive",      "เก็บไว้ดูส่วนตัว / สำรองข้อมูล"),
+                ("professional", "ตัดต่อมืออาชีพ  (ProRes)"),
+            ],
+        },
+        {
+            "id": "priority",
+            "title": "Step 4 / 4  —  ความเร็ว vs คุณภาพ",
+            "question": "ต้องการเน้นด้านใด?",
+            "options": [
+                ("quality",  "คุณภาพดีที่สุด  (ใช้เวลานานกว่า)"),
+                ("balanced", "สมดุล  (แนะนำ)"),
+                ("fast",     "เร็วที่สุด  (คุณภาพปานกลาง)"),
+            ],
+        },
+    ]
+
+    def __init__(self, parent: ctk.CTk, on_apply: Callable[[dict], None]) -> None:
+        super().__init__(parent)
+        self.title("Smart Recommend")
+        self.geometry("560x400")
+        self.resizable(False, False)
+        self.grab_set()
+
+        self._on_apply = on_apply
+        self._step = 0
+        self._radio_vars: list[ctk.StringVar] = [
+            ctk.StringVar(value=s["options"][0][0]) for s in self._STEPS
+        ]
+
+        self._build()
+        self._show_step(0)
+
+    def _build(self) -> None:
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        self._prog = ctk.CTkProgressBar(self, height=6)
+        self._prog.grid(row=0, column=0, sticky="ew", padx=0, pady=0)
+
+        self._content = ctk.CTkFrame(self, fg_color="transparent")
+        self._content.grid(row=1, column=0, sticky="nsew", padx=36, pady=20)
+        self._content.grid_columnconfigure(0, weight=1)
+
+        nav = ctk.CTkFrame(self, fg_color="transparent")
+        nav.grid(row=2, column=0, sticky="ew", padx=28, pady=(0, 20))
+        nav.grid_columnconfigure(1, weight=1)
+
+        self._back_btn = ctk.CTkButton(
+            nav, text="← Back", width=90, height=34,
+            fg_color="transparent", border_width=1,
+            border_color=("gray50", "gray60"),
+            text_color=("gray10", "gray90"),
+            command=self._prev,
+        )
+        self._back_btn.grid(row=0, column=0)
+
+        self._next_btn = ctk.CTkButton(
+            nav, text="Next →", width=130, height=34,
+            command=self._next,
+        )
+        self._next_btn.grid(row=0, column=2)
+
+    def _show_step(self, idx: int) -> None:
+        for w in self._content.winfo_children():
+            w.destroy()
+
+        step = self._STEPS[idx]
+
+        ctk.CTkLabel(
+            self._content, text=step["title"],
+            font=ctk.CTkFont(size=11), text_color="gray",
+        ).grid(row=0, column=0, sticky="w", pady=(0, 6))
+
+        ctk.CTkLabel(
+            self._content, text=step["question"],
+            font=ctk.CTkFont(size=16, weight="bold"),
+            wraplength=480, anchor="w",
+        ).grid(row=1, column=0, sticky="w", pady=(0, 16))
+
+        var = self._radio_vars[idx]
+        for r, (val, label) in enumerate(step["options"]):
+            ctk.CTkRadioButton(
+                self._content, text=label,
+                variable=var, value=val,
+                font=ctk.CTkFont(size=13),
+            ).grid(row=2 + r, column=0, sticky="w", pady=5)
+
+        self._prog.set((idx + 1) / len(self._STEPS))
+        self._back_btn.configure(state="normal" if idx > 0 else "disabled")
+
+        is_last = idx == len(self._STEPS) - 1
+        self._next_btn.configure(
+            text="Apply Settings" if is_last else "Next →",
+            fg_color=(["#2ecc71", "#27ae60"] if is_last else ["#3B8ED0", "#1F6AA5"]),
+            hover_color=(["#27ae60", "#1e8449"] if is_last else ["#36719F", "#144870"]),
+        )
+
+    def _prev(self) -> None:
+        if self._step > 0:
+            self._step -= 1
+            self._show_step(self._step)
+
+    def _next(self) -> None:
+        if self._step < len(self._STEPS) - 1:
+            self._step += 1
+            self._show_step(self._step)
+        else:
+            answers = {s["id"]: self._radio_vars[i].get()
+                       for i, s in enumerate(self._STEPS)}
+            self._on_apply(self._compute(answers))
+            self.destroy()
+
+    @staticmethod
+    def _compute(answers: dict) -> dict:
+        source   = answers["source"]
+        goal     = answers["goal"]
+        usage    = answers["usage"]
+        priority = answers["priority"]
+        rec: dict = {}
+
+        # Deinterlace
+        rec["deinterlace"] = source in ("old_tape", "dvd")
+        if source == "old_tape" and priority == "quality":
+            rec["deinterlace_method"] = "bwdif  (High Quality)"
+        elif rec["deinterlace"]:
+            rec["deinterlace_method"] = "yadif  (Standard)"
+
+        # Denoise
+        rec["denoise"] = goal in ("denoise", "full") or source == "old_tape"
+        if rec["denoise"]:
+            if source == "old_tape" or goal == "denoise":
+                rec["denoise_strength"] = 6.0
+            elif source == "dvd":
+                rec["denoise_strength"] = 4.0
+            else:
+                rec["denoise_strength"] = 3.0
+
+        # Upscale
+        if goal in ("upscale", "full"):
+            rec["upscale"] = "2×  Upscale"
+            rec["upscale_algo"] = ("Bicubic  (Fast)" if priority == "fast"
+                                   else "Lanczos  (Best)")
+        else:
+            rec["upscale"] = "1×  (Original)"
+            rec["upscale_algo"] = "Lanczos  (Best)"
+
+        # Sharpen
+        rec["sharpen"] = goal in ("sharpen", "full")
+        if rec["sharpen"]:
+            rec["sharpen_amount"] = 1.5 if priority == "quality" else 1.0
+
+        # Codec & quality
+        if usage == "professional":
+            rec["codec"] = "ProRes 422"
+            rec["quality"] = 85
+        elif usage == "streaming":
+            rec["codec"] = "H.264  (VideoToolbox)"
+            rec["quality"] = 75
+        else:
+            rec["codec"] = "H.265 HEVC  (VideoToolbox)"
+            rec["quality"] = 80
+
+        return rec
 
 
 # ---------------------------------------------------------------------------
@@ -197,9 +398,28 @@ class VideoEnhancerApp(ctk.CTk):
         sw = self._settings_widgets
         pad = {"padx": 12, "pady": 6}
 
+        # ── Smart Recommend ─────────────────────────────────────────────
+        rec_frame = ctk.CTkFrame(outer, fg_color=("gray92", "gray17"))
+        rec_frame.grid(row=0, column=0, sticky="ew", **pad)
+
+        ctk.CTkLabel(
+            rec_frame,
+            text="ไม่แน่ใจจะปรับค่าอะไร?",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            anchor="w",
+        ).pack(side="left", padx=14, pady=10)
+
+        _rec_btn = ctk.CTkButton(
+            rec_frame, text="Smart Recommend",
+            width=150, height=30,
+            command=self._open_recommend_wizard,
+        )
+        _rec_btn.pack(side="right", padx=14, pady=10)
+        sw.append(_rec_btn)
+
         # ── 1. Deinterlace ──────────────────────────────────────────────
         s1 = self._section(outer, "1  Deinterlace")
-        s1.grid(row=0, column=0, sticky="ew", **pad)
+        s1.grid(row=1, column=0, sticky="ew", **pad)
 
         self._deint_var = ctk.BooleanVar(value=False)
         _cb1 = ctk.CTkCheckBox(s1, text="Enable  (remove interlace combing from old footage)",
@@ -222,7 +442,7 @@ class VideoEnhancerApp(ctk.CTk):
 
         # ── 2. Denoise ──────────────────────────────────────────────────
         s2 = self._section(outer, "2  Denoise")
-        s2.grid(row=1, column=0, sticky="ew", **pad)
+        s2.grid(row=2, column=0, sticky="ew", **pad)
 
         self._denoise_var = ctk.BooleanVar(value=False)
         _cb2 = ctk.CTkCheckBox(s2, text="Enable  (reduce film grain / digital noise)",
@@ -246,7 +466,7 @@ class VideoEnhancerApp(ctk.CTk):
 
         # ── 3. Upscale ──────────────────────────────────────────────────
         s3 = self._section(outer, "3  Upscale")
-        s3.grid(row=2, column=0, sticky="ew", **pad)
+        s3.grid(row=3, column=0, sticky="ew", **pad)
 
         row3a = ctk.CTkFrame(s3, fg_color="transparent")
         row3a.pack(fill="x", padx=12, pady=(10, 4))
@@ -276,7 +496,7 @@ class VideoEnhancerApp(ctk.CTk):
 
         # ── 4. Sharpen ──────────────────────────────────────────────────
         s4 = self._section(outer, "4  Sharpen")
-        s4.grid(row=3, column=0, sticky="ew", **pad)
+        s4.grid(row=4, column=0, sticky="ew", **pad)
 
         self._sharp_var = ctk.BooleanVar(value=False)
         _cb4 = ctk.CTkCheckBox(s4, text="Enable sharpening",
@@ -300,7 +520,7 @@ class VideoEnhancerApp(ctk.CTk):
 
         # ── Output Settings ──────────────────────────────────────────────
         s5 = self._section(outer, "Output Settings")
-        s5.grid(row=4, column=0, sticky="ew", **pad)
+        s5.grid(row=5, column=0, sticky="ew", **pad)
 
         # Codec
         rc = ctk.CTkFrame(s5, fg_color="transparent")
@@ -362,8 +582,44 @@ class VideoEnhancerApp(ctk.CTk):
             height=30, fg_color="transparent", border_width=1,
             command=self._show_command,
         )
-        _btn_prev.grid(row=5, column=0, sticky="ew", padx=12, pady=(0, 8))
+        _btn_prev.grid(row=6, column=0, sticky="ew", padx=12, pady=(0, 8))
         sw.append(_btn_prev)
+
+    # -----------------------------------------------------------------------
+    # Smart Recommend
+    # -----------------------------------------------------------------------
+
+    def _open_recommend_wizard(self) -> None:
+        RecommendWizard(self, self._apply_recommendations)
+
+    def _apply_recommendations(self, rec: dict) -> None:
+        if "deinterlace" in rec:
+            self._deint_var.set(rec["deinterlace"])
+        if "deinterlace_method" in rec:
+            self._deint_method.set(rec["deinterlace_method"])
+        self._sync_deint()
+
+        if "denoise" in rec:
+            self._denoise_var.set(rec["denoise"])
+        if "denoise_strength" in rec:
+            self._denoise_str.set(rec["denoise_strength"])
+        self._sync_denoise()
+
+        if "upscale" in rec:
+            self._scale_var.set(rec["upscale"])
+        if "upscale_algo" in rec:
+            self._algo_var.set(rec["upscale_algo"])
+
+        if "sharpen" in rec:
+            self._sharp_var.set(rec["sharpen"])
+        if "sharpen_amount" in rec:
+            self._sharp_amt.set(rec["sharpen_amount"])
+        self._sync_sharp()
+
+        if "codec" in rec:
+            self._codec_var.set(rec["codec"])
+        if "quality" in rec:
+            self._quality_var.set(rec["quality"])
 
     # -----------------------------------------------------------------------
 
