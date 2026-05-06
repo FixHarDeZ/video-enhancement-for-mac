@@ -1,30 +1,35 @@
 # Release Skill
 
-When the user invokes `/release`, follow these steps to create a versioned release of Video Enhancer.
+When the user invokes `/release`, **do NOT use the Skill tool** — read this file and execute each step directly with Bash, Edit, and other tools.
 
 ---
 
-## Step 1 — Determine the new version
+## Step 1 — Ask release type
 
 Ask the user: **"What type of release? (patch / minor / major)"**
 
-Then read the current version from `src/app.py`:
+Read the current version from `src/app.py`:
 ```python
 VERSION = "x.y.z"
 ```
 
 Calculate the new version:
-- **patch**: increment Z (1.0.0 → 1.0.1)
-- **minor**: increment Y, reset Z (1.0.1 → 1.1.0)
-- **major**: increment X, reset Y and Z (1.1.0 → 2.0.0)
+- **patch**: increment Z  (1.1.0 → 1.1.1)
+- **minor**: increment Y, reset Z  (1.1.0 → 1.2.0)
+- **major**: increment X, reset Y and Z  (1.1.0 → 2.0.0)
 
-Confirm with the user: **"Release v{NEW_VERSION} as a {type} release — proceed?"**
+Confirm: **"Release v{NEW_VERSION} ({type}) — proceed?"**
 
 ---
 
 ## Step 2 — Check working tree
 
-Run `git status`. If there are uncommitted changes unrelated to the release, warn the user and ask them to stash or commit those first before continuing.
+```bash
+git status
+git diff --stat
+```
+
+Unstaged changes to `src/app.py`, `README.md`, or other project files are **expected** — they will be included in the release commit (Step 5). Only warn and pause if you see changes that look completely unrelated (e.g. personal config files the user didn't mention).
 
 ---
 
@@ -40,24 +45,36 @@ git checkout -b release/v{NEW_VERSION}
 
 Edit `src/app.py` — change the `VERSION` line:
 ```python
-VERSION = "NEW_VERSION"
+VERSION = "{NEW_VERSION}"
 ```
 
 ---
 
-## Step 5 — Commit the version bump
+## Step 5 — Commit everything into one release commit
+
+Stage all relevant files (skip `.pyc`, `__pycache__`, `.DS_Store`):
 
 ```bash
-git add src/app.py
+git add src/app.py README.md
+# also stage any other modified project files the user mentioned
+git status  # confirm what's staged
+```
+
+Commit with a message that lists the actual changes (read the diff to write a real summary, not a placeholder):
+
+```bash
 git commit -m "$(cat <<'EOF'
-chore: bump version to v{NEW_VERSION}
+{type}: {one-line summary of what changed in this release}
+
+- {change 1}
+- {change 2}
+...
+- Bump version to v{NEW_VERSION}
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 EOF
 )"
 ```
-
-If the user has other changes they want included in this release, add and commit those too before moving on.
 
 ---
 
@@ -71,6 +88,8 @@ git push -u origin release/v{NEW_VERSION}
 
 ## Step 7 — Open Pull Request
 
+Build the PR body from the actual commit diff, then:
+
 ```bash
 gh pr create \
   --base main \
@@ -80,10 +99,10 @@ gh pr create \
 ## Release v{NEW_VERSION}
 
 ### Changes
-- Version bump to v{NEW_VERSION}
+- {list the real changes from the diff}
 
 ### Checklist
-- [ ] Version updated in `src/app.py`
+- [x] Version updated in `src/app.py`
 - [ ] Tested on Apple Silicon Mac
 - [ ] Ready to merge and tag
 
@@ -92,15 +111,15 @@ EOF
 )"
 ```
 
-Show the user the PR URL returned by `gh pr create`.
+Show the PR URL to the user.
 
 ---
 
 ## Step 8 — Merge Pull Request
 
-Ask the user: **"Merge PR and tag v{NEW_VERSION} now?"**
+Ask: **"Merge PR and tag v{NEW_VERSION} now?"**
 
-If yes, merge using squash merge to keep main history clean:
+If yes:
 
 ```bash
 gh pr merge release/v{NEW_VERSION} \
@@ -113,8 +132,6 @@ gh pr merge release/v{NEW_VERSION} \
 
 ## Step 9 — Tag on main
 
-Switch to main and pull the merged commit, then tag:
-
 ```bash
 git checkout main
 git pull origin main
@@ -126,19 +143,21 @@ git push origin "v{NEW_VERSION}"
 
 ## Step 10 — Summary
 
-Report back to the user:
+Report:
 
-- New version: `v{NEW_VERSION}`
-- PR: (URL from step 7)
-- Merge commit: `git log -1 --format="%h %s"`
-- Tag: `v{NEW_VERSION}` pushed to origin
+```
+Version : v{NEW_VERSION}
+PR      : {URL}
+Commit  : {git log -1 --format="%h %s"}
+Tag     : v{NEW_VERSION} pushed to origin
+```
 
 ---
 
 ## Notes
 
+- Never use the `Skill` tool to invoke this — read and execute directly.
 - Never force-push to main.
-- Never skip the confirmation in step 1.
-- Tag is always created on main after the merge — never on the release branch.
-- The version lives only in `src/app.py:VERSION`. Do not change `pyproject.toml` separately unless the user asks.
-- If `gh` CLI is not installed or not authenticated, tell the user to run `brew install gh && gh auth login` first.
+- Tag always goes on main after merge, never on the release branch.
+- Version lives only in `src/app.py:VERSION`.
+- If `gh` is missing: `brew install gh && gh auth login`.

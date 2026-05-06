@@ -79,8 +79,10 @@ Version string lives in `src/app.py` as `VERSION = "x.y.z"`. Update this before 
 
 ## Release Process
 
-Use the `/release` skill (`.claude/skills/release.md`) to:
-1. Bump the version in `src/app.py`
-2. Commit all staged changes
-3. Tag the release
-4. Push tag to remote
+When the user types `/release`:
+
+1. **Do NOT use the `Skill` tool** — it only handles built-in skills and will fail.
+2. Read `.claude/skills/release.md` directly with the `Read` tool.
+3. Execute every step in that file using `Bash`, `Edit`, and other tools.
+
+The skill covers: ask release type → check working tree → create release branch → bump version → commit all pending changes → push → open PR → merge → tag on main → report summary.
