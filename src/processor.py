@@ -88,22 +88,29 @@ def build_filter_chain(settings: dict) -> Optional[str]:
         filters.append(_DEINTERLACE_MAP.get(method, "yadif=mode=1"))
 
     if settings.get("denoise"):
-        s = float(settings.get("denoise_strength", 4.0))
+        # ponytail: gentler than ffmpeg's hqdn3d default (4:3:6:4.5). High
+        # temporal denoise smears detail/ghosts motion — clean source ends up
+        # softer than the original. Keep temporal <= spatial.
+        s = float(settings.get("denoise_strength", 2.0))
         ls = round(s, 1)
         cs = round(s * 0.75, 1)
-        lt = round(s * 1.5, 1)
-        ct = round(s * 1.125, 1)
+        lt = round(s * 1.0, 1)
+        ct = round(s * 0.75, 1)
         filters.append(f"hqdn3d={ls}:{cs}:{lt}:{ct}")
 
     upscale = settings.get("upscale", "1x")
     if upscale != "1x":
+        # ponytail: interpolation only — adds pixels, not real detail. Not an
+        # ML upscaler. Real detail recovery would need Real-ESRGAN/etc.
         factor = int(upscale[0])
         algo = _SCALE_ALGO_MAP.get(settings.get("upscale_algo", "lanczos"), "lanczos")
         filters.append(f"scale=iw*{factor}:ih*{factor}:flags={algo}")
 
     if settings.get("sharpen"):
-        amount = round(float(settings.get("sharpen_amount", 1.0)), 1)
-        filters.append(f"unsharp=5:5:{amount}:5:5:0.0")
+        # ponytail: smaller 3x3 radius + low default — 5x5 with amount>=1.0
+        # rings/halos, esp. stacked after denoise ("waxy" look).
+        amount = round(float(settings.get("sharpen_amount", 0.5)), 1)
+        filters.append(f"unsharp=3:3:{amount}:3:3:0.0")
 
     return ",".join(filters) if filters else None
 
@@ -126,7 +133,9 @@ def build_ffmpeg_command(input_path: str, output_path: str, settings: dict) -> l
     if "videotoolbox" in codec:
         # yuv420p required; allow_sw lets VT fall back instead of silently dropping video
         cmd += ["-pix_fmt", "yuv420p", "-allow_sw", "1"]
-        quality = max(0, min(100, int(settings.get("quality", 65))))
+        # ponytail: VT -q:v is constant-quality (higher = better). 65 bands on
+        # clean source; 80 is a sane floor before re-encode loss shows.
+        quality = max(0, min(100, int(settings.get("quality", 80))))
         cmd += ["-q:v", str(quality)]
         if "hevc" in codec:
             cmd += ["-tag:v", "hvc1"]  # QuickTime requires hvc1, not hev1

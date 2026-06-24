@@ -320,14 +320,16 @@ class RecommendWizard(ctk.CTkToplevel):
         elif rec["deinterlace"]:
             rec["deinterlace_method"] = "yadif  (Standard)"
 
-        rec["denoise"] = goal in ("denoise", "full") or source == "old_tape"
+        # Only denoise when the user actually asks (or clearly noisy source).
+        # "full" no longer force-denoises clean input — that softened it.
+        rec["denoise"] = goal == "denoise" or source == "old_tape"
         if rec["denoise"]:
             if source == "old_tape" or goal == "denoise":
-                rec["denoise_strength"] = 6.0
-            elif source == "dvd":
-                rec["denoise_strength"] = 4.0
-            else:
                 rec["denoise_strength"] = 3.0
+            elif source == "dvd":
+                rec["denoise_strength"] = 2.0
+            else:
+                rec["denoise_strength"] = 1.5
 
         if goal in ("upscale", "full"):
             rec["upscale"] = "2×  Upscale"
@@ -338,7 +340,11 @@ class RecommendWizard(ctk.CTkToplevel):
 
         rec["sharpen"] = goal in ("sharpen", "full")
         if rec["sharpen"]:
-            rec["sharpen_amount"] = 1.5 if priority == "quality" else 1.0
+            # Light by default — "full" gets a gentle crisp-up, not halos.
+            if goal == "sharpen":
+                rec["sharpen_amount"] = 0.8 if priority == "quality" else 0.5
+            else:
+                rec["sharpen_amount"] = 0.3
 
         if usage == "professional":
             rec["codec"] = "ProRes 422"
@@ -694,11 +700,11 @@ class VideoEnhancerApp(ctk.CTk):
         _lbl_quality = ctk.CTkLabel(rq, text=self._s("quality_label"), width=80)
         _lbl_quality.pack(side="left")
         self._i18n.append((_lbl_quality, "quality_label"))
-        self._quality_var = ctk.IntVar(value=65)
+        self._quality_var = ctk.IntVar(value=80)
         _sl5q = ctk.CTkSlider(rq, from_=0, to=100, variable=self._quality_var, width=160)
         _sl5q.pack(side="left", padx=6)
         sw.append(_sl5q)
-        self._quality_lbl = ctk.CTkLabel(rq, text="65", width=36)
+        self._quality_lbl = ctk.CTkLabel(rq, text="80", width=36)
         self._quality_lbl.pack(side="left")
         self._quality_var.trace_add("write", lambda *_: self._quality_lbl.configure(
             text=str(self._quality_var.get())))
